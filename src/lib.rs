@@ -80,6 +80,54 @@ macro_rules! microstate (
       }
 ));
 
+///
+/// Similar to microstate!, instead of building its own internal enum of potential states
+/// It is initialized with the name of an external enum of states. The list of states 
+/// is no longer used, as it would be redundant with the external state enum
+///
+#[macro_export]
+macro_rules! microstate_ext (
+  (
+      $machine:ident { $initial:ident, $ext_states:ident }
+
+      $($meth:ident {
+          $($from:ident => $to:ident)*
+      })*
+  ) => (
+      #[allow(non_snake_case)]
+      pub mod $machine {
+          use $ext_states;
+
+          #[derive(PartialEq,Eq,Debug)]
+          pub struct Machine {
+              state: $ext_states,
+          }
+
+          pub fn new() -> Machine {
+              Machine::new()
+          }
+
+          impl Machine {
+              pub fn new() -> Machine {
+                  Machine {
+                      state: $ext_states::$initial
+                  }
+              }
+
+              pub fn state(&self) -> $ext_states {
+                  self.state.clone()
+              }
+
+              $(pub fn $meth(&mut self) -> Option<$ext_states> {
+                  match self.state {
+                      $( $ext_states::$from => { self.state = $ext_states::$to; Some($ext_states::$to) } ),*
+                          _ => None
+                  }
+              })*
+          }
+      }
+));
+
 #[cfg(test)]
 mod tests {
     microstate!{
